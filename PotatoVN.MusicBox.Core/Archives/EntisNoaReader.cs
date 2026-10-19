@@ -5,7 +5,7 @@ using MusicBox.Core.Models;
 namespace MusicBox.Core.Archives;
 
 /// <summary>
-/// Entis GLS "ERISA-Archive" (.noa), used by 悠之空 and other Entis titles.
+/// Entis GLS "ERISA-Archive" (.noa) used by Entis titles.
 ///
 /// Layout: "Entis\x1A", file-kind 0x02000400 at 8, a "DirEntry" section at 0x40
 /// whose length sits at +8 and whose body starts at +0x10. The body holds a
@@ -119,7 +119,7 @@ public sealed class EntisNoaReader : IArchiveReader
             long entryHeader = record + relativeOffset;
             if (entryHeader < 0 || entryHeader + 0x10 > fs.Length) return false;
 
-            Span<byte> fileHeader = stackalloc byte[0x10];
+            var fileHeader = new byte[0x10];
             fs.Position = entryHeader;
             fs.ReadExactly(fileHeader);
             ulong fileSize = BinaryPrimitives.ReadUInt64LittleEndian(fileHeader[8..]);

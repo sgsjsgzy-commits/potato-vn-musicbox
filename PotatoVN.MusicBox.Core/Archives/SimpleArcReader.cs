@@ -5,7 +5,7 @@ using MusicBox.Core.Models;
 namespace MusicBox.Core.Archives;
 
 /// <summary>
-/// Headerless UTF-16 index archive seen in "新建压缩文件/3564" style drops:
+/// Headerless UTF-16 index archive used by some independent releases:
 ///
 /// <code>
 /// uint32 entryCount

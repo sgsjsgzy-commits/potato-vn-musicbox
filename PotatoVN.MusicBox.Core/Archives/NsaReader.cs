@@ -65,6 +65,7 @@ public sealed class NsaReader : IArchiveReader
         long baseOffset = start + BinaryPrimitives.ReadUInt32BigEndian(sizeBytes);
         if (baseOffset <= 0 || baseOffset >= fs.Length) return false;
 
+        Span<byte> record = stackalloc byte[13];
         for (int i = 0; i < count; i++)
         {
             if (fs.Position >= baseOffset) break;
@@ -72,7 +73,6 @@ public sealed class NsaReader : IArchiveReader
             string name = ReadCString(fs);
             if (string.IsNullOrEmpty(name)) return false;
 
-            Span<byte> record = stackalloc byte[13];
             if (fs.Read(record) != record.Length) break;
 
             byte compression = record[0];

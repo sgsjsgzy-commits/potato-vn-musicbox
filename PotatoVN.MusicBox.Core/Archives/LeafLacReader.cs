@@ -5,8 +5,7 @@ using MusicBox.Core.Models;
 namespace MusicBox.Core.Archives;
 
 /// <summary>
-/// Leaf "LAC" resource archives, used by WHITE ALBUM 2 and other Aquaplus
-/// titles.
+/// Leaf "LAC" resource archives used by Aquaplus titles.
 ///
 /// Two layouts share the "LAC\0" magic:
 ///  - hierarchical LAC: int32 count at 4, then 0x78-byte records with a

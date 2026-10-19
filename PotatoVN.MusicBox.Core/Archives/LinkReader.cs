@@ -62,6 +62,8 @@ public sealed class LinkReader : IArchiveReader
         long maxOffset = fs.Length;
         Span<byte> header = stackalloc byte[13];
         Span<byte> nameLength = stackalloc byte[2];
+        Span<byte> magic = stackalloc byte[4];
+        Span<byte> sizeBytes = stackalloc byte[4];
 
         while (fs.Position + 13 < maxOffset)
         {
@@ -91,11 +93,9 @@ public sealed class LinkReader : IArchiveReader
             long unpacked = dataSize;
             if (compressed)
             {
-                Span<byte> magic = stackalloc byte[4];
                 fs.ReadExactly(magic);
                 if (magic.SequenceEqual("BMR"u8))
                 {
-                    Span<byte> sizeBytes = stackalloc byte[4];
                     fs.ReadExactly(sizeBytes);
                     unpacked = BinaryPrimitives.ReadUInt32LittleEndian(sizeBytes);
                 }

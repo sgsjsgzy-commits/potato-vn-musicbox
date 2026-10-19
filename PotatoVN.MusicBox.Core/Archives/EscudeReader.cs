@@ -5,7 +5,7 @@ using MusicBox.Core.Models;
 namespace MusicBox.Core.Archives;
 
 /// <summary>
-/// Escu:de "ESC-ARC2" archives (廃村少女 etc.).
+/// Escu:de "ESC-ARC2" archives.
 ///
 /// Layout: 8-byte magic, uint32 seed, then a key-derived obfuscated entry
 /// count, a 12-byte-per-entry index XOR-masked with a rotating key, and a name

@@ -75,6 +75,7 @@ public sealed class BgiReader : IArchiveReader
         fs.Position = 0x10;
         fs.ReadExactly(index);
 
+        Span<byte> probe = stackalloc byte[8];
         for (int i = 0; i < count; i++)
         {
             int record = i * recordSize;
@@ -91,7 +92,6 @@ public sealed class BgiReader : IArchiveReader
             bool audioContainer = false;
             if (size >= 8)
             {
-                Span<byte> probe = stackalloc byte[8];
                 fs.Position = absolute;
                 fs.ReadExactly(probe);
                 if (probe[4..8].SequenceEqual("bw  "u8))

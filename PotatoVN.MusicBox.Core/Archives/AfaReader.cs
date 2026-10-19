@@ -5,7 +5,7 @@ using MusicBox.Core.Models;
 namespace MusicBox.Core.Archives;
 
 /// <summary>
-/// AliceSoft System 4 "AFAH / AlicArch" archives (dohnadohnaSound.afa).
+/// AliceSoft System 4 "AFAH / AlicArch" archives.
 ///
 /// Classic layout (version 1/2): "AFAH", reserved word, "AlicArch", int32
 /// version at 0x10, uint32 base offset at 0x18, "INFO" at 0x1C, then the

@@ -5,7 +5,7 @@ using MusicBox.Core.Models;
 namespace MusicBox.Core.Archives;
 
 /// <summary>
-/// Softpal / Amuse Craft "PAC " archives (e.g. 牵绊闪耀的恋之伊吕波).
+/// Softpal / Amuse Craft "PAC " archives.
 ///
 /// Layout: int32 count at 8, index at 0x804, then records of
 /// <c>[0x20-byte name][uint32 size][uint32 offset]</c>. The first payload

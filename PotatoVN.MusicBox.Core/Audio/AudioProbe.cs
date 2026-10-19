@@ -160,12 +160,14 @@ public static class AudioProbe
         int read = stream.Read(block);
         if (read < 18) return 0;
 
-        long sampleRate = ((long)block[10] << 12) | ((long)block[11] << 4) | (block[12] >> 4);
+        long sampleRate = ((long)(block[10] & 0xFF) << 12)
+                          | ((long)(block[11] & 0xFF) << 4)
+                          | (uint)((block[12] >> 4) & 0xF);
         long totalSamples = ((long)(block[13] & 0x0F) << 32)
-                            | ((long)block[14] << 24)
-                            | ((long)block[15] << 16)
-                            | ((long)block[16] << 8)
-                            | block[17];
+                            | ((long)(block[14] & 0xFF) << 24)
+                            | ((long)(block[15] & 0xFF) << 16)
+                            | ((long)(block[16] & 0xFF) << 8)
+                            | (block[17] & 0xFFL);
 
         return sampleRate > 0 ? totalSamples / (double)sampleRate : 0;
     }

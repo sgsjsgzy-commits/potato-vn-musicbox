@@ -5,7 +5,7 @@ using MusicBox.Core.Models;
 namespace MusicBox.Core.Archives;
 
 /// <summary>
-/// Nexton/Tactics "TACTICS_ARC_FILE" archive (くれよんちゅーりっぷ etc.).
+/// Nexton/Tactics "TACTICS_ARC_FILE" archive.
 ///
 /// Layout: 16-byte magic, then records of
 /// <c>[uint32 storedSize][uint32 unpackedSize][uint32 nameLength][name]

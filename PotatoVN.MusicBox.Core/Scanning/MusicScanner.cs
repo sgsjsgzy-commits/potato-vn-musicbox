@@ -20,7 +20,7 @@ public sealed class MusicScanner
     private static readonly string[] ArchiveExtensions =
     [
         ".xp3", ".arc", ".pak", ".pac", ".noa", ".ypf", ".rpa", ".nsa",
-        ".bin", ".int", ".afa", ".owp", ".pck",
+        ".bin", ".int", ".afa", ".owp", ".pck", ".pack",
     ];
 
     /// <summary>Folders that almost always contain voice clips rather than music.</summary>
@@ -289,10 +289,21 @@ public sealed class MusicScanner
 
             if (!AudioProbe.IsPlayableExtension(entryForScan.Name))
             {
-                // Audio in an engine-private codec (Entis MIO) cannot be decoded
-                // here; count it so the UI can explain the empty result.
-                if (AudioProbe.IsUndecodableAudio(entryForScan.Name)) undecodableAudio++;
-                continue;
+                // ".owp" is a masked Ogg stream under a proprietary extension;
+                // the reader unmasked it already, so sniff the payload and give
+                // it the container extension that matches.
+                if (IsMaskedContainer(entryForScan.Name) && LooksPlayable(reader, entryForScan))
+                {
+                    entryForScan = entryForScan.WithName(
+                        Path.GetFileNameWithoutExtension(entryForScan.Name) + ".ogg");
+                }
+                else
+                {
+                    // Audio in an engine-private codec (Entis MIO) cannot be
+                    // decoded here; count it so the UI can explain the result.
+                    if (AudioProbe.IsUndecodableAudio(entryForScan.Name)) undecodableAudio++;
+                    continue;
+                }
             }
 
             var kind = Classify(entryForScan.EntryPath, entryForScan.Name);
@@ -300,6 +311,14 @@ public sealed class MusicScanner
             {
                 if (archiveIsVoice) kind = TrackKind.Voice;
                 else if (archiveIsMusic) kind = TrackKind.Bgm;
+                else if (IsPlaceholderEntry(entryForScan.EntryPath))
+                {
+                    // A protected index hides the folder layout, so music and
+                    // effects can only be told apart by length: one-shots are
+                    // seconds long while background tracks run for minutes.
+                    double length = ProbeDuration(reader, entryForScan);
+                    if (length > 0) kind = length >= MinMusicSeconds ? TrackKind.Bgm : TrackKind.SoundEffect;
+                }
             }
 
             if (!ShouldInclude(kind, options)) continue;
@@ -369,6 +388,35 @@ public sealed class MusicScanner
             library.Warnings.Add($"{archiveName}：{undecodableAudio} 个曲目使用引擎私有编码（MIO），无法播放");
     }
 
+    /// <summary>Shorter tracks are treated as effects rather than music.</summary>
+    private const double MinMusicSeconds = 20;
+
+    /// <summary>
+    /// Entries the reader had to rename to an ordinal because the index hides
+    /// file names. Their path carries no folder information either.
+    /// </summary>
+    private static bool IsPlaceholderEntry(string entryPath)
+    {
+        string name = Path.GetFileNameWithoutExtension(entryPath);
+        return name.StartsWith("track", StringComparison.OrdinalIgnoreCase)
+               && name.Length > 5
+               && name.AsSpan(5).IndexOfAnyExcept("0123456789") < 0;
+    }
+
+    /// <summary>Opens the payload just long enough to read its duration.</summary>
+    private static double ProbeDuration(IArchiveReader reader, ArchiveEntry entry)
+    {
+        try
+        {
+            using var stream = reader.OpenEntryStream(entry);
+            return AudioProbe.LooksLikeAudio(stream) ? AudioProbe.GetDuration(stream) : 0;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
     /// <summary>
     /// Reads an entry's container magic without decoding it, used to tell a
     /// playable payload from one that is still masked.
@@ -385,6 +433,10 @@ public sealed class MusicScanner
             return false;
         }
     }
+
+    /// <summary>Extensions that hide an ordinary container rather than a codec.</summary>
+    private static bool IsMaskedContainer(string name) =>
+        Path.GetExtension(name).Equals(".owp", StringComparison.OrdinalIgnoreCase);
 
     private static bool HasExtension(string name)
     {

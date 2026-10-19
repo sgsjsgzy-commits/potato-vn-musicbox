@@ -128,25 +128,25 @@ public sealed class EscudeReader : IArchiveReader
 
     public Stream OpenEntryStream(ArchiveEntry entry)
     {
-        using var slice = new FileSliceStream(ArchivePath, entry.Offset, entry.StoredLength);
-        var data = new byte[entry.StoredLength];
-        slice.ReadExactly(data);
+        var slice = new FileSliceStream(ArchivePath, entry.Offset, entry.StoredLength);
 
-        uint state = _seed;
-        for (int i = 0; i + 4 <= data.Length; i += 4)
+        // Only the index is masked; payloads are stored as-is (either a plain
+        // container or "acp\0"+big-endian size+ LZW data). Applying the index
+        // key stream here would corrupt every entry.
+        using (slice)
         {
-            uint value = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(i)) ^ NextKey(ref state);
-            BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(i), value);
-        }
+            var data = new byte[entry.StoredLength];
+            slice.ReadExactly(data);
 
-        if (data.Length > 8 && data.AsSpan(0, 4).SequenceEqual("acp\0"u8))
-        {
-            int unpacked = BinaryPrimitives.ReadInt32BigEndian(data.AsSpan(4));
-            var decoded = Codecs.DecodeFvpLzw(data.AsSpan(8), unpacked);
-            return new MemoryStream(decoded, writable: false);
-        }
+            if (data.Length > 8 && data.AsSpan(0, 4).SequenceEqual("acp\0"u8))
+            {
+                int unpacked = BinaryPrimitives.ReadInt32BigEndian(data.AsSpan(4));
+                var decoded = Codecs.DecodeFvpLzw(data.AsSpan(8), unpacked);
+                return new MemoryStream(decoded, writable: false);
+            }
 
-        return new MemoryStream(data, writable: false);
+            return new MemoryStream(data, writable: false);
+        }
     }
 
     public void Dispose() { }

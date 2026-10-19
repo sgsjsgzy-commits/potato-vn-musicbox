@@ -25,7 +25,7 @@ switch (args[0])
         RunScan(args);
         break;
     case "archive":
-        RunArchive(args[1]);
+        RunArchive(args[1], args.Length > 2 ? args[2] : null);
         break;
     case "play":
         RunPlay(args[1]);
@@ -108,7 +108,7 @@ static void RunProbe(string root, string? reportPath)
     Console.Error.WriteLine($"\n{total} files, {ok} parsed, {fail} failed");
 }
 
-static void RunArchive(string path)
+static void RunArchive(string path, string? filter)
 {
     using var reader = ArchiveRegistry.TryOpen(path);
     if (reader is null)
@@ -117,8 +117,19 @@ static void RunArchive(string path)
         return;
     }
 
+    if (filter is not null && filter.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+    {
+        // "archive <file> <out.txt>" dumps every entry to a file.
+        File.WriteAllLines(filter, reader.Entries.Select(e =>
+            $"{e.EntryPath}\toffset={e.Offset}\tstored={e.StoredLength}\tunpacked={e.UnpackedLength}\tenc={e.IsEncrypted}\tcmp={e.IsCompressed}"));
+        Console.WriteLine($"Format: {reader.FormatName}, entries: {reader.Entries.Count} -> {filter}");
+        return;
+    }
+
     Console.WriteLine($"Format: {reader.FormatName}, entries: {reader.Entries.Count}");
-    foreach (var entry in reader.Entries.Take(50))
+    var shown = reader.Entries.AsEnumerable();
+    if (!string.IsNullOrEmpty(filter)) shown = shown.Where(e => e.EntryPath.Contains(filter, StringComparison.OrdinalIgnoreCase));
+    foreach (var entry in shown.Take(50))
     {
         Console.WriteLine($"  {entry.EntryPath}  offset={entry.Offset} stored={entry.StoredLength} unpacked={entry.UnpackedLength} enc={entry.IsEncrypted} cmp={entry.IsCompressed}");
     }
@@ -135,10 +146,20 @@ static void RunPlay(string target)
         entryPath = target[(split + 2)..];
     }
 
-    using var reader = ArchiveRegistry.TryOpen(archive);
+    using var reader = AudioProbe.IsPlayableExtension(Path.GetExtension(archive))
+        ? null
+        : ArchiveRegistry.TryOpen(archive);
     if (reader is null)
     {
-        Console.WriteLine("Not a supported archive.");
+        // A plain audio file is accepted as well, so decoded test output can be
+        // verified without going through an archive.
+        using var file = File.OpenRead(archive);
+        Console.WriteLine($"Audio: {AudioProbe.LooksLikeAudio(file)}");
+        Console.WriteLine($"Duration: {AudioProbe.GetDuration(file):F1}s");
+        file.Position = 0;
+        var magic = new byte[16];
+        file.ReadExactly(magic);
+        Console.WriteLine($"Header: {Convert.ToHexString(magic)}");
         return;
     }
 

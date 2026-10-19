@@ -28,7 +28,7 @@ public sealed class Xp3Reader : IArchiveReader
     public string ArchivePath { get; }
 
     public string? IndexProtectionNote => IsProtectedIndex
-        ? "索引被 KrkrZ Hxv4 保护，密钥只能从运行中的游戏内存获取"
+        ? "索引被 KrkrZ 保护，文件名无法还原，曲目按序号显示"
         : null;
 
     /// <summary>
@@ -132,22 +132,25 @@ public sealed class Xp3Reader : IArchiveReader
     }
 
     /// <summary>
-    /// True when the decompressed index opens with the "Hxv4" chunk used by
-    /// KrkrZ's Cxdec protection. Its filename table and content filter are
-    /// keyed from the running game (ChaCha20 nonce + per-entry span keys), so
-    /// the entries cannot be recovered without dumping that state from memory.
+    /// True when the index opens with an "Hxv4" chunk, KrkrZ's index
+    /// protection. The chunk is a 12-byte header followed by a fixed-size blob;
+    /// the "File" records that follow are ordinary XP3 records whose names have
+    /// been replaced by sequential placeholders. The payloads themselves are
+    /// page-masked Ogg streams, which <see cref="Xp3OggUnmask"/> recovers.
     /// </summary>
     public bool IsProtectedIndex { get; private set; }
 
     private bool ParseIndex(byte[] index, long baseOffset)
     {
-        if (index.Length >= 4 && index.AsSpan(0, 4).SequenceEqual("Hxv4"u8))
+        int pos = 0;
+        if (index.Length >= 12 && index.AsSpan(0, 4).SequenceEqual("Hxv4"u8))
         {
             IsProtectedIndex = true;
-            return false;
+            long headerSize = BinaryPrimitives.ReadInt64LittleEndian(index.AsSpan(4));
+            if (headerSize < 0 || 12 + headerSize > index.Length) return false;
+            pos = 12 + (int)headerSize;
         }
 
-        int pos = 0;
         while (pos + 12 <= index.Length)
         {
             uint signature = BinaryPrimitives.ReadUInt32LittleEndian(index.AsSpan(pos));
@@ -160,14 +163,34 @@ public sealed class Xp3Reader : IArchiveReader
 
             if (signature != 0x656C6946) continue; // "File"
 
-            var entry = ParseFileRecord(payload, baseOffset, ArchivePath);
-            if (entry is not null) _entries.Add(entry);
+            var entry = ParseFileRecord(payload, baseOffset, ArchivePath, IsProtectedIndex);
+            if (entry is null) continue;
+
+            // Protected indexes replace every name with a single placeholder
+            // character (U+5000, U+5001, ...). Those carry no information, so
+            // the ordinal is a more useful label; the scanner appends the real
+            // extension once it sniffs the payload.
+            if (IsProtectedIndex && IsPlaceholderName(entry.EntryPath))
+                entry = entry.WithName($"track{_entries.Count + 1:0000}");
+
+            _entries.Add(entry);
         }
 
         return _entries.Count > 0;
     }
 
-    private static ArchiveEntry? ParseFileRecord(ReadOnlySpan<byte> payload, long baseOffset, string archivePath)
+    /// <summary>
+    /// True for the one-character placeholders a protected index uses in place
+    /// of file names. The packer numbers them from U+5000 upwards, so with a
+    /// few hundred entries the sequence runs well past U+50FF; anything in the
+    /// CJK unified block counts, since a real single-character file name does
+    /// not occur in these archives.
+    /// </summary>
+    private static bool IsPlaceholderName(string name) =>
+        name.Length == 1 && name[0] is >= '一' and <= '鿿';
+
+    private static ArchiveEntry? ParseFileRecord(
+        ReadOnlySpan<byte> payload, long baseOffset, string archivePath, bool protectedIndex)
     {
         uint flags = 0;
         long unpackedSize = 0;
@@ -196,7 +219,7 @@ public sealed class Xp3Reader : IArchiveReader
                 if (nameLength > 0 && 22 + nameLength * 2 <= data.Length)
                     name = Encoding.Unicode.GetString(data.Slice(22, nameLength * 2));
             }
-            else if (section == 0x61646C72 && data.Length >= 4) // "adlr"
+            else if (section == 0x726C6461 && data.Length >= 4) // "adlr"
             {
                 // The engine's "adler" field doubles as the first four bytes of
                 // the per-entry payload key in protected archives.
@@ -217,7 +240,11 @@ public sealed class Xp3Reader : IArchiveReader
         }
 
         if (name is null || segments.Count == 0) return null;
-        if (!IsUsableName(name)) return null;
+
+        // Protected indexes name their entries with a single placeholder
+        // character, which the general name check would reject.
+        bool placeholder = protectedIndex && IsPlaceholderName(name);
+        if (!placeholder && !IsUsableName(name)) return null;
 
         // Size accounting: prefer the info section, fall back to the segments.
         long stored = segments.Sum(s => s.IsCompressed ? s.PackedSize : s.Size);
@@ -263,19 +290,28 @@ public sealed class Xp3Reader : IArchiveReader
         // Single uncompressed segment: stream directly to avoid buffering large BGM.
         if (segments.Count == 1 && !segments[0].IsCompressed)
         {
+            var seg = segments[0];
+            var slice = new FileSliceStream(ArchivePath, seg.Offset, seg.Size);
+
+            // Most protected KiriKiri archives (Yuzusoft "cxdec" and its
+            // relatives) mask the payload one Ogg page at a time. That variant
+            // is fully recoverable, including entries whose index does not even
+            // set the encryption flag, so it is tried first.
+            var unmasked = Xp3OggUnmask.Wrap(slice, record.Adlr);
+            if (unmasked is not null) return unmasked;
+
             // Some archives set the encryption flag but still store plain
             // containers, so the flag alone is not trustworthy. A repeating
             // mask is only applied when it reproduces the whole identification
             // page; position-dependent ciphers are left untouched and reported
             // by the scanner instead of yielding noise.
-            var seg = segments[0];
             if (!entry.IsEncrypted)
-                return new FileSliceStream(ArchivePath, seg.Offset, seg.Size);
+                return slice;
 
             var key = Xp3Cipher.DeriveKey(ArchivePath, seg.Offset, seg.Size, record.Adlr);
-            if (key is null) return new FileSliceStream(ArchivePath, seg.Offset, seg.Size);
+            if (key is null) return slice;
 
-            return new XorStream(new FileSliceStream(ArchivePath, seg.Offset, seg.Size), key);
+            return new XorStream(slice, key);
         }
 
         var output = new MemoryStream((int)Math.Min(entry.UnpackedLength, 128L * 1024 * 1024));

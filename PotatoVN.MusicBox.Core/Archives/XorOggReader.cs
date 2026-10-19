@@ -3,9 +3,11 @@ using MusicBox.Core.Models;
 namespace MusicBox.Core.Archives;
 
 /// <summary>
-/// Ogg Vorbis files whose whole payload is XORed with a single byte (".owp",
-/// used by the あねもい engine). Decoding happens while streaming, so a 15 MB
-/// track is never copied to disk.
+/// ".owp" containers, used by the あねもい engine. Despite the extension these
+/// are Ogg streams masked the same way protected XP3 payloads are: either a
+/// single byte over the whole file, or one byte per page. Both are recovered
+/// here, and decoding happens while streaming so a 15 MB track is never copied
+/// to disk.
 /// </summary>
 public sealed class XorOggReader : IArchiveReader
 {
@@ -18,7 +20,9 @@ public sealed class XorOggReader : IArchiveReader
     private XorOggReader(string path) => ArchivePath = path;
 
     /// <summary>
-    /// Probes the header for "OggS" after XOR with a candidate key constant.
+    /// Probes the header for "OggS" under a single-byte mask. A file whose
+    /// pages each carry a different mask is reported by
+    /// <see cref="Xp3OggUnmask"/> instead and is not handled here.
     /// </summary>
     public static XorOggReader? TryOpen(string path)
     {
@@ -51,9 +55,17 @@ public sealed class XorOggReader : IArchiveReader
         }
     }
 
-    public Stream OpenEntryStream(ArchiveEntry entry) =>
-        new XorStream(new FileSliceStream(ArchivePath, entry.Offset, entry.StoredLength),
-            entry.Tag is byte key ? key : (byte)0);
+    public Stream OpenEntryStream(ArchiveEntry entry)
+    {
+        var slice = new FileSliceStream(ArchivePath, entry.Offset, entry.StoredLength);
+
+        // Files with a per-page mask are not single-byte XORed; hand them to
+        // the page unmasker so they still stream correctly.
+        var perPage = Xp3OggUnmask.Wrap(slice, null);
+        if (perPage is not null) return perPage;
+
+        return new XorStream(slice, entry.Tag is byte key ? key : (byte)0);
+    }
 
     public void Dispose() { }
 

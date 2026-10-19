@@ -15,10 +15,11 @@ public static class AudioProbe
 
     /// <summary>
     /// Containers an archive can hold that are audio but not decodable here
-    /// (the engine's own codec). They are listed for information only.
+    /// (the engine's own codec). They are listed for information only. ".owp"
+    /// is deliberately absent: it is a masked Ogg stream, not a private codec.
     /// </summary>
     public static readonly string[] UndecodableAudioExtensions =
-        [".mio", ".ems", ".lac", ".owp"];
+        [".mio", ".ems", ".lac"];
 
     public static bool IsPlayableExtension(string name) =>
         PlayableExtensions.Contains(Path.GetExtension(name).ToLowerInvariant());

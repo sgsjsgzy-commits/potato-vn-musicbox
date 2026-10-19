@@ -66,6 +66,7 @@
 | BIN | 无签名 UTF-16 索引 | 结构化校验通过后才接受 |
 | OWP | 单字节异或的 Ogg | 解码时按流异或，不复制文件 |
 | NOA | Entis GLS | ERISA 目录树；`.mio` 为私有编码 |
+| QLIE FilePackVer3 | QLIE 引擎 | 名称掩码、legacy 载荷解密、key.fkey 自动查找 |
 
 松散文件（`.ogg` `.mp3` `.wav` `.flac` `.m4a` 等）始终支持。
 
@@ -117,6 +118,8 @@ dotnet run --project PotatoVN.MusicBox.Cli -- play "D:/Games/某个游戏/bgm.yp
 - **CatSystem2 加密 KIF 的文件名**：目录树中的名称是替换密码，需要从游戏 exe 里取口令才能还原。音频本身的 Blowfish 加密由归档种子即可解开，所以曲目仍可播放，只是标题退化为 `m00000001` 这样的序号。
 - **Entis `.mio`**：引擎私有音频编码，未实现解码，会提示共有多少曲目不可播放。
 - **TACTICS_ARC_FILE**：仅内置四个已知标题的异或密钥，其余标题需要自行补充。
+- **QLIE 加密类型 4**：需要从游戏 exe 提取 256 字节 IconKeyImage，目前只实现了 legacy 类型 1。
+- **引擎私有加密的松散 `.ogg`**：文件头不是 OggS，插件会提示"文件已加密"而不是列出后播放无声。
 - 只保留文件哈希的归档（如部分 NekoPack 变体）无法还原文件名
 - NScripter 的 NBZ（bzip2）压缩条目未支持
 

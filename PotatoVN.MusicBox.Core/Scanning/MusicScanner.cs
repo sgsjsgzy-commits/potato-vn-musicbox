@@ -201,8 +201,35 @@ public sealed class MusicScanner
             },
         };
 
-        if (options.ProbeDuration) track.DurationSeconds = ProbeFile(file);
+        if (options.ProbeDuration)
+        {
+            track.DurationSeconds = ProbeFile(file);
+
+            // A file that carries an audio extension but neither decodes nor
+            // looks like its container is encrypted by the engine. Listing it
+            // would only produce silence.
+            if (track.DurationSeconds <= 0 && !LooksLikeAudioFile(file))
+            {
+                library.Warnings.Add($"{Path.GetFileName(file)}：文件已加密，无法播放");
+                return;
+            }
+        }
+
         library.Tracks.Add(track);
+    }
+
+    /// <summary>Reads the first bytes of a loose file to confirm its container.</summary>
+    private static bool LooksLikeAudioFile(string path)
+    {
+        try
+        {
+            using var stream = File.OpenRead(path);
+            return AudioProbe.LooksLikeAudio(stream);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static void ScanArchive(
@@ -237,6 +264,7 @@ public sealed class MusicScanner
         string archiveName = Path.GetFileName(archivePath);
         int skippedEncrypted = 0;
         int undecodableAudio = 0;
+        int undecryptablePayload = 0;
 
         if (reader.IndexProtectionNote is { } note)
             library.Warnings.Add($"{archiveName}：{note}");
@@ -278,8 +306,14 @@ public sealed class MusicScanner
 
             if (entryForScan.IsEncrypted && !reader.CanDecryptPayload)
             {
-                skippedEncrypted++;
-                continue;
+                // The reader cannot undo this archive's encryption, but the flag
+                // is frequently set on plain payloads, so give it one chance
+                // before dropping the entry.
+                if (!LooksPlayable(reader, entryForScan))
+                {
+                    skippedEncrypted++;
+                    continue;
+                }
             }
 
             string id = MakeId(archivePath, entryForScan.EntryPath);
@@ -313,14 +347,43 @@ public sealed class MusicScanner
                 }
             }
 
+            // When the payload has to be decoded to be recognised, a failed
+            // open means it stays masked; report that instead of listing it.
+            if (!options.ProbeDuration && entryForScan.IsEncrypted && !reader.CanDecryptPayload
+                && !LooksPlayable(reader, entryForScan))
+            {
+                undecryptablePayload++;
+                continue;
+            }
+
             library.Tracks.Add(track);
         }
 
         if (skippedEncrypted > 0)
             library.Warnings.Add($"{archiveName}：跳过 {skippedEncrypted} 个加密音频（无法解密）");
 
+        if (undecryptablePayload > 0)
+            library.Warnings.Add($"{archiveName}：{undecryptablePayload} 个曲目的加密方式无法静态解开");
+
         if (undecodableAudio > 0)
             library.Warnings.Add($"{archiveName}：{undecodableAudio} 个曲目使用引擎私有编码（MIO），无法播放");
+    }
+
+    /// <summary>
+    /// Reads an entry's container magic without decoding it, used to tell a
+    /// playable payload from one that is still masked.
+    /// </summary>
+    private static bool LooksPlayable(IArchiveReader reader, ArchiveEntry entry)
+    {
+        try
+        {
+            using var stream = reader.OpenEntryStream(entry);
+            return AudioProbe.LooksLikeAudio(stream);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool HasExtension(string name)
@@ -388,8 +451,21 @@ public sealed class MusicScanner
         {
             string segment = segments[i];
 
-            if (VoiceMarkers.Any(m => segment == m || segment.Contains(m))) return TrackKind.Voice;
-            if (SeMarkers.Any(m => segment == m || segment.StartsWith(m))) return TrackKind.SoundEffect;
+            // Engines that abbreviate folders use "s/m" for sound/music and
+            // "s/e" for sound effects. Read the parent while the segment is a
+            // bare letter, so the deeper marker still wins.
+            if (segment is "m")
+                return TrackKind.Bgm;
+            if (segment is "e" or "v")
+                return TrackKind.SoundEffect;
+
+            // A segment like "se" (SFX) sits inside music folders such as
+            // res/s/m, so a single-letter segment must not match by prefix.
+            if (segment.Length > 2 && VoiceMarkers.Any(m => segment == m || segment.Contains(m)))
+                return TrackKind.Voice;
+
+            if (SeMarkers.Any(m => segment == m || (segment.Length > 2 && segment.StartsWith(m))))
+                return TrackKind.SoundEffect;
 
             // A bare "sound" folder is usually SFX (Ren'Py: audio/sound), but
             // Japanese engines also use sound/ for music — let the file name

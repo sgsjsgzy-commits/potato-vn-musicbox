@@ -41,7 +41,7 @@ public static class ArchiveRegistry
     public static readonly string[] SupportedExtensions =
     [
         ".xp3", ".arc", ".pak", ".pac", ".noa", ".ypf", ".rpa", ".nsa", ".dat", ".bin", ".pck",
-        ".int", ".afa", ".owp",
+        ".int", ".afa", ".owp", ".pack",
     ];
 
     /// <summary>
@@ -87,6 +87,7 @@ public static class ArchiveRegistry
         TacticsReader.TryOpen,
         EscudeReader.TryOpen,
         CatSystem2Reader.TryOpen,
+        QlieReader.TryOpen,
         EntisNoaReader.TryOpen,
         FavoriteReader.TryOpen,
         FavoriteBinReader.TryOpen,

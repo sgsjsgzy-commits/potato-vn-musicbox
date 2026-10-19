@@ -30,6 +30,14 @@ public sealed class Xp3Reader : IArchiveReader
     public string? IndexProtectionNote => IsProtectedIndex
         ? "索引被 KrkrZ Hxv4 保护，密钥只能从运行中的游戏内存获取"
         : null;
+
+    /// <summary>
+    /// The XP3 encryption flag is advisory: many archives set it while storing
+    /// plain containers, and <see cref="OpenEntryStream"/> returns the payload
+    /// untouched when no key can be derived. Entries are therefore always
+    /// attempted, and the scanner drops the ones whose magic stays unreadable.
+    /// </summary>
+    public bool CanDecryptPayload => true;
     public IReadOnlyList<ArchiveEntry> Entries => _entries;
 
     private Xp3Reader(string path, FileStream stream)
@@ -164,6 +172,7 @@ public sealed class Xp3Reader : IArchiveReader
         uint flags = 0;
         long unpackedSize = 0;
         string? name = null;
+        uint? adlr = null;
         var segments = new List<Xp3Segment>();
 
         int pos = 0;
@@ -186,6 +195,12 @@ public sealed class Xp3Reader : IArchiveReader
                 int nameLength = BinaryPrimitives.ReadUInt16LittleEndian(data[20..]);
                 if (nameLength > 0 && 22 + nameLength * 2 <= data.Length)
                     name = Encoding.Unicode.GetString(data.Slice(22, nameLength * 2));
+            }
+            else if (section == 0x61646C72 && data.Length >= 4) // "adlr"
+            {
+                // The engine's "adler" field doubles as the first four bytes of
+                // the per-entry payload key in protected archives.
+                adlr = BinaryPrimitives.ReadUInt32LittleEndian(data);
             }
             else if (section == 0x6D676573 && data.Length >= 28) // "segm"
             {
@@ -217,7 +232,7 @@ public sealed class Xp3Reader : IArchiveReader
             UnpackedLength = unpacked,
             IsCompressed = segments.Any(s => s.IsCompressed),
             IsEncrypted = (flags & 0x80000000u) != 0,
-            Tag = segments,
+            Tag = new Xp3Entry(segments, adlr),
         };
     }
 
@@ -240,14 +255,27 @@ public sealed class Xp3Reader : IArchiveReader
 
     public Stream OpenEntryStream(ArchiveEntry entry)
     {
-        if (entry.Tag is not List<Xp3Segment> segments || segments.Count == 0)
+        if (entry.Tag is not Xp3Entry record || record.Segments.Count == 0)
             throw new InvalidDataException("XP3 entry has no segments.");
+
+        var segments = record.Segments;
 
         // Single uncompressed segment: stream directly to avoid buffering large BGM.
         if (segments.Count == 1 && !segments[0].IsCompressed)
         {
+            // Some archives set the encryption flag but still store plain
+            // containers, so the flag alone is not trustworthy. A repeating
+            // mask is only applied when it reproduces the whole identification
+            // page; position-dependent ciphers are left untouched and reported
+            // by the scanner instead of yielding noise.
             var seg = segments[0];
-            return new FileSliceStream(ArchivePath, seg.Offset, seg.Size);
+            if (!entry.IsEncrypted)
+                return new FileSliceStream(ArchivePath, seg.Offset, seg.Size);
+
+            var key = Xp3Cipher.DeriveKey(ArchivePath, seg.Offset, seg.Size, record.Adlr);
+            if (key is null) return new FileSliceStream(ArchivePath, seg.Offset, seg.Size);
+
+            return new XorStream(new FileSliceStream(ArchivePath, seg.Offset, seg.Size), key);
         }
 
         var output = new MemoryStream((int)Math.Min(entry.UnpackedLength, 128L * 1024 * 1024));
@@ -284,6 +312,9 @@ public sealed class Xp3Reader : IArchiveReader
     public void Dispose() => _stream.Dispose();
 
     internal readonly record struct Xp3Segment(bool IsCompressed, long Offset, long Size, long PackedSize);
+
+    /// <summary>Everything the reader needs to open one entry.</summary>
+    internal sealed record Xp3Entry(List<Xp3Segment> Segments, uint? Adlr);
 }
 
 /// <summary>

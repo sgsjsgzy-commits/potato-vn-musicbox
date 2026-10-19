@@ -1,0 +1,63 @@
+﻿name: Server Build and Push to Docker Hub
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'GalgameManager.Server/**'
+      - 'GalgameManager.Core/**'
+      - '.github/workflows/server-build-push.yml'
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: goldenpotato137/potatovn.server
+  REPO_MINOR_VERSION_VAR_NAME: MINOR_VERSION
+
+jobs:
+  build-and-push:
+    name: Build and Push Server to Docker Hub
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta # 给这个步骤一个 ID，以便后续引用其输出
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} # 完整的镜像名称
+          tags: |
+            # 生成版本标签： 1.x
+            # type=raw 表示直接使用给定的 value 作为标签
+            # vars[env.REPO_MINOR_VERSION_VAR_NAME] 读取仓库变量
+            # github.run_number 获取 Action 的运行编号
+            type=raw,value=1.${{ github.run_number }}
+            # 生成 latest 标签
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v6
+        with:
+          context: . # 使用仓库根目录作为 Docker 构建上下文
+          file: ./GalgameManager.Server/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }} # 使用上一步生成的标签
+          labels: ${{ steps.meta.outputs.labels }} # 使用上一步生成的 Label (可选，但推荐)
+          build-args: |
+            CI_BUILD_SUFFIX=${{ github.run_number }}

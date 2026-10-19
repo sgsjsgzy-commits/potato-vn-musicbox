@@ -1,0 +1,13 @@
+# Build output
+bin/
+obj/
+artifacts/
+*.pvnplugin.zip
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Local tooling
+_tools/

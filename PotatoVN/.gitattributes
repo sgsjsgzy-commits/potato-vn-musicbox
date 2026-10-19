@@ -1,0 +1,38 @@
+# Normalize all text files to CRLF line endings (Windows project)
+* text=auto eol=crlf
+
+# Ensure common source files are treated as text with CRLF
+*.cs      text eol=crlf
+*.xaml    text eol=crlf
+*.csproj  text eol=crlf
+*.sln     text eol=crlf
+*.json    text eol=crlf
+*.md      text eol=crlf
+*.resw    text eol=crlf
+*.yml     text eol=crlf
+*.yaml    text eol=crlf
+*.xml     text eol=crlf
+*.props   text eol=crlf
+*.targets text eol=crlf
+*.manifest text eol=crlf
+*.appxmanifest text eol=crlf
+*.py      text eol=crlf
+*.svg     text eol=crlf
+
+# Binary files: no line-ending conversion
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.bmp     binary
+*.pdf     binary
+*.zip     binary
+*.7z      binary
+*.dll     binary
+*.exe     binary
+*.pri     binary
+*.ttf     binary
+*.otf     binary
+*.woff    binary
+*.woff2   binary

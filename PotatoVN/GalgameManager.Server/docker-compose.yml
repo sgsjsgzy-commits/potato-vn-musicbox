@@ -1,0 +1,58 @@
+﻿networks:
+  campus_marker:
+    driver: bridge
+
+services:
+  potatovn-server:
+    image: 'goldenpotato137/potatovn.server:latest'
+    networks:
+      - campus_marker
+    ports:
+      - '8080:8080'
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      # 以下内容为必填项
+      # 数据库连接字符串，默认配置不需要修改
+      "ConnectionStrings:DefaultConnection": "Host=database;Port=5432;Database=potatovn;Username=postgres;Password=114514"
+      # JwtKey为JWT加密的密钥，请修改为一个足够长的任意字符串（至少64位）（不要使用默认值！）
+      "AppSettings:JwtKey": "Change this to your key! This is a super secret key which is long enough to be safe."
+      # 数据存储服务（OSS）的EndPoint，请修改为你的OSS服务的EndPoint
+      "AppSettings:Minio:EndPoint": "xxx.xxx.xxx (WITHOUT http/https, e.g. 114.514.com)"
+      # OSS的AccessKey
+      "AppSettings:Minio:AccessKey": "Change this to your OSS(S3-like) AccessKey"
+      # OSS的SecretKey
+      "AppSettings:Minio:SecretKey": "Change this to your OSS(S3-like) SecretKey"
+      # OSS EndPoint是否使用SSL(https)，如果使用请填写true，否则填写false
+      "AppSettings:Minio:UseSSL": true
+      
+      # 以下内容为选填项
+      "AppSettings:Minio:BucketName": "potatovn" #OSS的Bucket名称
+      "AppSettings:User:Default": true            #是否允许用户以用户名密码注册与登录
+      "AppSettings:User:Bangumi": true            #是否允许用户使用Bangumi账号注册与登录
+      "AppSettings:User:OssSize": 104857600       #每位用户的存储空间大小(byte)
+      # 作为Bangumi的OAuth2认证服务器 （如果你希望这台服务器承担BGM OAuth2认证职能（而不走官方服务器），填写以下内容：）
+      "AppSettings:Bangumi:OAuth2Enable": false #如果此项为true，必须填写AppId和AppSecret
+      "AppSettings:Bangumi:AppId": "Change this to your Bangumi AppId if you want to use this server as OAuth2 server"
+      "AppSettings:Bangumi:AppSecret": "Change this to your Bangumi AppSecret if you want to use this server as OAuth2 server"
+      # 作为Hikarinagi开放API的透传代理 （如果你希望客户端可以通过本服务器使用Hikarinagi数据源，填写以下内容：）
+      "AppSettings:Hikarinagi:Enable": false #如果此项为true，必须填写ClientId和ClientSecret
+      "AppSettings:Hikarinagi:ClientId": "Change this to your Hikarinagi OAuth ClientId"
+      "AppSettings:Hikarinagi:ClientSecret": "Change this to your Hikarinagi OAuth ClientSecret"
+  
+  
+  postgresql:
+    image: 'bitnami/postgresql:latest'
+    container_name: 'database'
+    networks:
+      - campus_marker
+    environment:
+      - POSTGRESQL_PASSWORD=114514 #数据库密码，可以自行修改，但是需要与上面的连接字符串中的密码一致
+    volumes:
+      - './data:/bitnami/postgresql'
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5

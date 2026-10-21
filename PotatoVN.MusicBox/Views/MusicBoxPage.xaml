@@ -15,6 +15,21 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- ======= Full-bleed hero backdrop ======= -->
+        <Grid Grid.Row="0">
+            <!-- Blurred artwork wash; tinted to stay readable in either theme. -->
+            <Image x:Name="HeroBackdrop" Stretch="UniformToFill" Opacity="0.55" />
+            <Rectangle>
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop x:Name="HeroStopTop" Color="#55FFFFFF" Offset="0" />
+                        <GradientStop x:Name="HeroStopMid" Color="#CCFFFFFF" Offset="0.72" />
+                        <GradientStop x:Name="HeroStopBottom" Color="#F7FFFFFF" Offset="1" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+        </Grid>
+
         <!-- Main two-column layout: game rail + track list -->
         <Grid Grid.Row="0" ColumnSpacing="0">
             <Grid.ColumnDefinitions>
@@ -23,7 +38,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Left: game selector -->
-            <Grid Grid.Column="0" Padding="16,16,8,16" RowSpacing="12">
+            <Grid Grid.Column="0" Padding="20,20,10,20" RowSpacing="14">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -33,7 +48,7 @@
                 <TextBlock
                     Grid.Row="0"
                     Margin="4,0,0,0"
-                    FontSize="26" FontWeight="SemiBold"
+                    FontSize="28" FontWeight="Bold"
                     Text="音乐盒" />
 
                 <AutoSuggestBox
@@ -48,28 +63,30 @@
                     Grid.Row="2"
                     IsItemClickEnabled="True"
                     ItemClick="GameList_ItemClick"
-                    SelectionMode="Single">                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                        <Setter Property="Padding" Value="12,2" />
-                        <Setter Property="Margin" Value="0,1" />
-                    </Style>
-                </ListView.ItemContainerStyle>
+                    SelectionMode="Single">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Padding" Value="12,4" />
+                            <Setter Property="Margin" Value="0,2" />
+                            <Setter Property="CornerRadius" Value="8" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
 
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Grid Padding="0,8" ColumnSpacing="12" HorizontalAlignment="Stretch">
+                            <Grid Padding="0,6" ColumnSpacing="12" HorizontalAlignment="Stretch">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="48" />
+                                    <ColumnDefinition Width="52" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
                                 <Border
                                     Grid.Column="0"
-                                    Width="48"
-                                    Height="64"
-                                    CornerRadius="6"
+                                    Width="52"
+                                    Height="68"
+                                    CornerRadius="8"
                                     Background="{ThemeResource SubtleFillColorSecondaryBrush}">
                                     <Grid>
                                         <FontIcon
@@ -80,7 +97,7 @@
                                     </Grid>
                                 </Border>
 
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
                                     <TextBlock
                                         FontWeight="SemiBold"
                                         MaxLines="2"
@@ -89,16 +106,16 @@
                                         TextWrapping="Wrap" />
                                     <TextBlock
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        FontSize="12"
+                                        FontSize="11"
                                         Text="{Binding Subtitle}" />
                                 </StackPanel>
 
                                 <TextBlock
                                     Grid.Column="2"
-                                    Margin="0,0,8,0"
+                                    Margin="0,0,6,0"
                                     VerticalAlignment="Center"
                                     Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                                    FontSize="12"
+                                    FontSize="11"
                                     Text="{Binding TrackCountText}" />
                             </Grid>
                         </DataTemplate>
@@ -106,242 +123,255 @@
                 </ListView>
             </Grid>
 
-            <!-- Right: tracks -->
-            <Grid Grid.Column="1" Padding="8,16,16,8" RowSpacing="10">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+            <!-- Right: white "vinyl" sheet the list lives on -->
+            <Grid Grid.Column="1" Padding="10,20,20,10">
+                <Grid
+                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="16"
+                    Padding="24,20,24,20"
+                    RowSpacing="14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <!-- Album header: artwork + metadata + primary action -->
-                <Grid Grid.Row="0" ColumnSpacing="18">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+                    <!-- Hero header: large artwork + metadata + actions -->
+                    <Grid Grid.Row="0" ColumnSpacing="20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
 
-                    <Border
-                        Grid.Column="0"
-                        Width="112"
-                        Height="112"
-                        CornerRadius="8"
-                        Background="{ThemeResource SubtleFillColorSecondaryBrush}">
-                        <Grid>
-                            <Image x:Name="AlbumCover" Stretch="UniformToFill" />
+                        <Border
+                            Grid.Column="0"
+                            Width="132"
+                            Height="132"
+                            CornerRadius="12"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                            <Grid>
+                                <FontIcon
+                                    x:Name="AlbumCoverPlaceholder"
+                                    FontSize="36"
+                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                    Glyph="&#xE8D6;" />
+                                <Image x:Name="AlbumCover" Stretch="UniformToFill" />
+                            </Grid>
+                        </Border>
+
+                        <Grid Grid.Column="1" RowSpacing="2" VerticalAlignment="Bottom">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock
+                                Grid.Row="0"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                Text="游戏原声" />
+
+                            <TextBlock
+                                x:Name="AlbumTitle"
+                                Grid.Row="1"
+                                FontSize="28"
+                                FontWeight="Bold"
+                                MaxLines="2"
+                                Text="选择左侧的游戏"
+                                TextTrimming="CharacterEllipsis"
+                                TextWrapping="NoWrap" />
+
+                            <TextBlock
+                                x:Name="AlbumSubtitle"
+                                Grid.Row="2"
+                                VerticalAlignment="Bottom"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                FontSize="11"
+                                Text="从游戏安装目录中提取音乐，无需启动游戏"
+                                TextTrimming="CharacterEllipsis" />
+
+                            <StackPanel
+                                Grid.Row="3"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal"
+                                Spacing="8">
+                                <Button
+                                    x:Name="PlayAllButton"
+                                    Click="PlayAllButton_Click"
+                                    Style="{ThemeResource AccentButtonStyle}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <FontIcon FontSize="13" Glyph="&#xE768;" />
+                                        <TextBlock Text="播放全部" />
+                                    </StackPanel>
+                                </Button>
+                                <Button
+                                    x:Name="ShuffleAllButton"
+                                    Click="ShuffleAllButton_Click"
+                                    ToolTipService.ToolTip="随机播放全部">
+                                    <FontIcon FontSize="14" Glyph="&#xE8B1;" />
+                                </Button>
+                                <Button
+                                    x:Name="RescanButton"
+                                    Click="RescanButton_Click"
+                                    ToolTipService.ToolTip="重新扫描该游戏">
+                                    <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+
+                    <!-- Filter row -->
+                    <Grid Grid.Row="1" ColumnSpacing="10" Margin="14,0,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <AutoSuggestBox
+                            x:Name="TrackSearchBox"
+                            Grid.Column="0"
+                            PlaceholderText="搜索曲目、文件夹…"
+                            QueryIcon="Find"
+                            TextChanged="TrackSearchBox_TextChanged" />
+
+                        <ComboBox
+                            x:Name="KindFilter"
+                            Grid.Column="1"
+                            MinWidth="130"
+                            SelectionChanged="KindFilter_SelectionChanged">
+                            <ComboBoxItem Content="全部曲目" Tag="all" />
+                            <ComboBoxItem Content="背景音乐" Tag="bgm" />
+                            <ComboBoxItem Content="语音" Tag="voice" />
+                            <ComboBoxItem Content="音效" Tag="se" />
+                        </ComboBox>
+                    </Grid>
+
+                    <!-- Track list -->
+                    <Grid Grid.Row="2">
+                        <ListView
+                            x:Name="TrackList"
+                            IsItemClickEnabled="True"
+                            ItemClick="TrackList_ItemClick"
+                            SelectionMode="Single">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="12,3" />
+                                    <Setter Property="Margin" Value="0,1" />
+                                    <Setter Property="CornerRadius" Value="6" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="0,5" ColumnSpacing="12" HorizontalAlignment="Stretch">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                            FontSize="11"
+                                            Text="{Binding IndexText}"
+                                            Visibility="{Binding IndexVisibility}" />
+
+                                        <!-- Now-playing marker replaces the row number. -->
+                                        <FontIcon
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                            Glyph="&#xEDB5;"
+                                            Visibility="{Binding PlayingVisibility}" />
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="0">
+                                            <TextBlock
+                                                FontWeight="{Binding TitleWeight}"
+                                                Text="{Binding Title}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                FontSize="11"
+                                                Text="{Binding Subtitle}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+
+                                        <Border
+                                            Grid.Column="2"
+                                            Padding="7,1"
+                                            VerticalAlignment="Center"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            CornerRadius="4">
+                                            <TextBlock
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                FontSize="11"
+                                                Text="{Binding Container}" />
+                                        </Border>
+
+                                        <TextBlock
+                                            Grid.Column="3"
+                                            MinWidth="44"
+                                            VerticalAlignment="Center"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            FontSize="11"
+                                            Text="{Binding Duration}"
+                                            TextAlignment="Right" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <!-- Empty / scanning state -->
+                        <StackPanel
+                            x:Name="EmptyState"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="10">
                             <FontIcon
-                                x:Name="AlbumCoverPlaceholder"
-                                FontSize="34"
+                                FontSize="40"
                                 Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                                 Glyph="&#xE8D6;" />
-                        </Grid>
-                    </Border>
-
-                    <Grid Grid.Column="1" RowSpacing="4">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <TextBlock
-                            Grid.Row="0"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            FontSize="12"
-                            Text="游戏原声" />
-
-                        <TextBlock
-                            x:Name="AlbumTitle"
-                            Grid.Row="1"
-                            FontSize="26"
-                            FontWeight="SemiBold"
-                            MaxLines="2"
-                            Text="选择左侧的游戏"
-                            TextTrimming="CharacterEllipsis"
-                            TextWrapping="Wrap" />
-
-                        <TextBlock
-                            x:Name="AlbumSubtitle"
-                            Grid.Row="2"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            FontSize="12"
-                            Text="从游戏安装目录中提取音乐，无需启动游戏"
-                            TextTrimming="CharacterEllipsis" />
-
-                        <StackPanel
-                            Grid.Row="3"
-                            Orientation="Horizontal"
-                            Spacing="8">
-                            <Button
-                                x:Name="PlayAllButton"
-                                Click="PlayAllButton_Click"
-                                Style="{ThemeResource AccentButtonStyle}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <FontIcon FontSize="13" Glyph="&#xE768;" />
-                                    <TextBlock Text="播放全部" />
-                                </StackPanel>
-                            </Button>
-                            <Button
-                                x:Name="ShuffleAllButton"
-                                Click="ShuffleAllButton_Click"
-                                ToolTipService.ToolTip="随机播放全部">
-                                <FontIcon FontSize="14" Glyph="&#xE8B1;" />
-                            </Button>
-                            <Button
-                                x:Name="RescanButton"
-                                Click="RescanButton_Click"
-                                ToolTipService.ToolTip="重新扫描该游戏">
-                                <FontIcon FontSize="14" Glyph="&#xE72C;" />
-                            </Button>
+                            <TextBlock
+                                x:Name="EmptyTitle"
+                                HorizontalAlignment="Center"
+                                FontWeight="SemiBold"
+                                Text="还没有音乐" />
+                            <TextBlock
+                                x:Name="EmptyDetail"
+                                MaxWidth="420"
+                                HorizontalAlignment="Center"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Text="在左侧选择一个游戏开始扫描。"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                            <ProgressRing
+                                x:Name="ScanProgress"
+                                Width="20"
+                                Height="20"
+                                IsActive="False" />
                         </StackPanel>
                     </Grid>
+
+                    <!-- Warnings -->
+                    <InfoBar
+                        x:Name="WarningBar"
+                        Grid.Row="3"
+                        IsClosable="True"
+                        IsOpen="False"
+                        Severity="Informational"
+                        Title="扫描提示" />
                 </Grid>
-
-                <!-- Filter row -->
-                <Grid Grid.Row="1" ColumnSpacing="10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <AutoSuggestBox
-                        x:Name="TrackSearchBox"
-                        Grid.Column="0"
-                        PlaceholderText="搜索曲目、文件夹…"
-                        QueryIcon="Find"
-                        TextChanged="TrackSearchBox_TextChanged" />
-
-                    <ComboBox
-                        x:Name="KindFilter"
-                        Grid.Column="1"
-                        MinWidth="130"
-                        SelectionChanged="KindFilter_SelectionChanged">
-                        <ComboBoxItem Content="全部曲目" Tag="all" />
-                        <ComboBoxItem Content="背景音乐" Tag="bgm" />
-                        <ComboBoxItem Content="语音" Tag="voice" />
-                        <ComboBoxItem Content="音效" Tag="se" />
-                    </ComboBox>
-                </Grid>
-
-                <!-- Track list -->
-                <Grid Grid.Row="2">
-                    <ListView
-                        x:Name="TrackList"
-                        IsItemClickEnabled="True"
-                        ItemClick="TrackList_ItemClick"
-                        SelectionMode="Single">                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                        <Setter Property="Padding" Value="12,2" />
-                        <Setter Property="Margin" Value="0,1" />
-                    </Style>
-                </ListView.ItemContainerStyle>
-
-                        <ListView.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Padding="0,6" ColumnSpacing="12" HorizontalAlignment="Stretch">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="32" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <TextBlock
-                                        Grid.Column="0"
-                                        VerticalAlignment="Center"
-                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                                        FontSize="12"
-                                        Text="{Binding IndexText}"
-                                        Visibility="{Binding IndexVisibility}" />
-
-                                    <!-- Now-playing marker replaces the row number. -->
-                                    <FontIcon
-                                        Grid.Column="0"
-                                        VerticalAlignment="Center"
-                                        FontSize="13"
-                                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
-                                        Glyph="&#xE93E;"
-                                        Visibility="{Binding PlayingVisibility}" />
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock
-                                            FontWeight="{Binding TitleWeight}"
-                                            Text="{Binding Title}"
-                                            TextTrimming="CharacterEllipsis" />
-                                        <TextBlock
-                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                            FontSize="12"
-                                            Text="{Binding Subtitle}"
-                                            TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-
-                                    <Border
-                                        Grid.Column="2"
-                                        Padding="8,2"
-                                        VerticalAlignment="Center"
-                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                        CornerRadius="4">
-                                        <TextBlock
-                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                            FontSize="12"
-                                            Text="{Binding Container}" />
-                                    </Border>
-
-                                    <TextBlock
-                                        Grid.Column="3"
-                                        MinWidth="48"
-                                        VerticalAlignment="Center"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        FontSize="12"
-                                        Text="{Binding Duration}"
-                                        TextAlignment="Right" />
-                                </Grid>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-
-                    <!-- Empty / scanning state -->
-                    <StackPanel
-                        x:Name="EmptyState"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Spacing="10">
-                        <FontIcon
-                            FontSize="42"
-                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                            Glyph="&#xE8D6;" />
-                        <TextBlock
-                            x:Name="EmptyTitle"
-                            HorizontalAlignment="Center"
-                            FontWeight="SemiBold"
-                            Text="还没有音乐" />
-                        <TextBlock
-                            x:Name="EmptyDetail"
-                            MaxWidth="420"
-                            HorizontalAlignment="Center"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="在左侧选择一个游戏开始扫描。"
-                            TextAlignment="Center"
-                            TextWrapping="Wrap" />
-                        <ProgressRing
-                            x:Name="ScanProgress"
-                            Width="24"
-                            Height="24"
-                            IsActive="False" />
-                    </StackPanel>
-                </Grid>
-
-                <!-- Warnings -->
-                <InfoBar
-                    x:Name="WarningBar"
-                    Grid.Row="3"
-                    IsClosable="True"
-                    IsOpen="False"
-                    Severity="Informational"
-                    Title="扫描提示" />
             </Grid>
         </Grid>
 

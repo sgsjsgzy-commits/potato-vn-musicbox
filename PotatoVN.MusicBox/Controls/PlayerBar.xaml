@@ -11,25 +11,25 @@
         <Style x:Key="TransportButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Width" Value="36" />
-            <Setter Property="Height" Value="36" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="CornerRadius" Value="16" />
         </Style>
         <Style x:Key="PrimaryTransportButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{ThemeResource AccentFillColorDefaultBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Width" Value="48" />
-            <Setter Property="Height" Value="48" />
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="CornerRadius" Value="22" />
         </Style>
     </UserControl.Resources>
 
     <Grid
         x:Name="Root"
-        Padding="18,12"
+        Padding="18,10"
         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
         BorderThickness="0,1,0,0"
@@ -50,15 +50,15 @@
 
             <Border
                 Grid.Column="0"
-                Width="56"
-                Height="56"
-                CornerRadius="10"
+                Width="52"
+                Height="52"
+                CornerRadius="8"
                 Background="{ThemeResource SubtleFillColorSecondaryBrush}">
                 <Grid>
                     <Image x:Name="CoverImage" Stretch="UniformToFill" />
                     <FontIcon
                         x:Name="CoverPlaceholder"
-                        FontSize="22"
+                        FontSize="20"
                         Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                         Glyph="&#xE8D6;" />
                 </Grid>
@@ -67,9 +67,9 @@
             <StackPanel
                 Grid.Column="1"
                 MinWidth="140"
-                MaxWidth="220"
+                MaxWidth="260"
                 VerticalAlignment="Center"
-                Spacing="2">
+                Spacing="1">
                 <TextBlock
                     x:Name="TitleText"
                     FontWeight="SemiBold"
@@ -78,19 +78,19 @@
                 <TextBlock
                     x:Name="SubtitleText"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    FontSize="12"
+                    FontSize="11"
                     Text="选择一首曲目开始"
                     TextTrimming="CharacterEllipsis" />
                 <TextBlock
                     x:Name="AlbumText"
                     Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                    FontSize="12"
+                    FontSize="11"
                     TextTrimming="CharacterEllipsis" />
             </StackPanel>
         </Grid>
 
         <!-- Transport + progress -->
-        <Grid Grid.Column="1" RowSpacing="2">
+        <Grid Grid.Column="1" RowSpacing="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -100,13 +100,13 @@
                 Grid.Row="0"
                 HorizontalAlignment="Center"
                 Orientation="Horizontal"
-                Spacing="4">
+                Spacing="2">
                 <Button
                     x:Name="ShuffleButton"
                     Click="ShuffleButton_Click"
                     Style="{StaticResource TransportButtonStyle}"
                     ToolTipService.ToolTip="随机播放">
-                    <FontIcon x:Name="ShuffleIcon" FontSize="15" Glyph="&#xE8B1;" />
+                    <FontIcon x:Name="ShuffleIcon" FontSize="13" Glyph="&#xE8B1;" />
                 </Button>
 
                 <Button
@@ -114,7 +114,7 @@
                     Click="PreviousButton_Click"
                     Style="{StaticResource TransportButtonStyle}"
                     ToolTipService.ToolTip="上一首">
-                    <FontIcon FontSize="17" Glyph="&#xE892;" />
+                    <FontIcon FontSize="15" Glyph="&#xE892;" />
                 </Button>
 
                 <Button
@@ -122,7 +122,7 @@
                     Click="PlayPauseButton_Click"
                     Style="{StaticResource PrimaryTransportButtonStyle}"
                     ToolTipService.ToolTip="播放 / 暂停">
-                    <FontIcon x:Name="PlayPauseIcon" FontSize="18" Glyph="&#xE768;" />
+                    <FontIcon x:Name="PlayPauseIcon" FontSize="16" Glyph="&#xE768;" />
                 </Button>
 
                 <Button
@@ -130,7 +130,7 @@
                     Click="NextButton_Click"
                     Style="{StaticResource TransportButtonStyle}"
                     ToolTipService.ToolTip="下一首">
-                    <FontIcon FontSize="17" Glyph="&#xE893;" />
+                    <FontIcon FontSize="15" Glyph="&#xE893;" />
                 </Button>
 
                 <Button
@@ -138,7 +138,7 @@
                     Click="RepeatButton_Click"
                     Style="{StaticResource TransportButtonStyle}"
                     ToolTipService.ToolTip="循环模式">
-                    <FontIcon x:Name="RepeatIcon" FontSize="15" Glyph="&#xE8EE;" />
+                    <FontIcon x:Name="RepeatIcon" FontSize="13" Glyph="&#xE8EE;" />
                 </Button>
             </StackPanel>
 
@@ -152,10 +152,10 @@
                 <TextBlock
                     x:Name="PositionText"
                     Grid.Column="0"
-                    MinWidth="38"
+                    MinWidth="36"
                     VerticalAlignment="Center"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    FontSize="12"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    FontSize="11"
                     Text="0:00"
                     TextAlignment="Right" />
 
@@ -169,10 +169,10 @@
                 <TextBlock
                     x:Name="DurationText"
                     Grid.Column="2"
-                    MinWidth="38"
+                    MinWidth="36"
                     VerticalAlignment="Center"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    FontSize="12"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    FontSize="11"
                     Text="0:00" />
             </Grid>
         </Grid>
@@ -182,13 +182,13 @@
             Grid.Column="2"
             VerticalAlignment="Center"
             Orientation="Horizontal"
-            Spacing="4">
+            Spacing="0">
             <Button
                 x:Name="QueueButton"
                 Click="QueueButton_Click"
                 Style="{StaticResource TransportButtonStyle}"
                 ToolTipService.ToolTip="播放队列">
-                <FontIcon FontSize="15" Glyph="&#xE8FD;" />
+                <FontIcon FontSize="13" Glyph="&#xE8FD;" />
             </Button>
 
             <Button
@@ -196,14 +196,14 @@
                 Click="MuteButton_Click"
                 Style="{StaticResource TransportButtonStyle}"
                 ToolTipService.ToolTip="静音">
-                <FontIcon x:Name="VolumeIcon" FontSize="15" Glyph="&#xE767;" />
+                <FontIcon x:Name="VolumeIcon" FontSize="13" Glyph="&#xE767;" />
             </Button>
         </StackPanel>
 
         <Slider
             x:Name="VolumeSlider"
             Grid.Column="3"
-            Width="104"
+            Width="88"
             VerticalAlignment="Center"
             IsThumbToolTipEnabled="True"
             Maximum="1"

@@ -93,7 +93,7 @@ public sealed class CatSystem2Reader : IArchiveReader
             cipher.DecryptPair(ref offset, ref size);
             if (offset > fs.Length || size > fs.Length || offset + (long)size > fs.Length) return null;
 
-            string name = $"m{i:00000000}.ogg";
+            string name = RecoverName(record[..NameFieldSize]) ?? $"m{i:00000000}.ogg";
             reader._entries.Add(new ArchiveEntry
             {
                 ArchivePath = path,
@@ -107,6 +107,104 @@ public sealed class CatSystem2Reader : IArchiveReader
         }
 
         return reader._entries.Count > 0 ? reader : null;
+    }
+
+    /// <summary>
+    /// Recovers an encrypted name without the game's "v_code". The cipher is a
+    /// rolling substitution over A-Za-z whose only per-entry parameter is the
+    /// starting index in that table; the name's own extension pins the table
+    /// position, so the shift can be read straight off the stored text and the
+    /// rest of the name decoded from it.
+    /// </summary>
+    private static string? RecoverName(ReadOnlySpan<byte> field)
+    {
+        int length = field.IndexOf((byte)0);
+        if (length <= 0) return null;
+
+        // Digits, dots and underscores pass through the cipher untouched, so
+        // only printable ASCII is required here.
+        for (int i = 0; i < length; i++)
+        {
+            if (field[i] is < 0x20 or > 0x7E) return null;
+        }
+
+        string stored = Encoding.ASCII.GetString(field[..length]);
+
+        // The extension characters are exact under the right shift; take the
+        // candidate that turns them into a known archive extension. Shifts 26
+        // apart decode to the same letters with inverted case ("bgm01.ogg" vs
+        // "BGM01.OGG"), so the tie is broken by picking the lower-case form.
+        string? best = null;
+        int bestScore = int.MaxValue;
+        for (int shift = 0; shift < CipherAlphabetLength; shift++)
+        {
+            string candidate = DecodeWithShift(stored, shift);
+            if (!HasKnownExtension(candidate)) continue;
+
+            int upper = candidate.Count(char.IsUpper);
+            if (upper < bestScore)
+            {
+                best = candidate;
+                bestScore = upper;
+            }
+        }
+
+        return best is null ? null : best.ToLowerInvariant();
+    }
+
+    private const int CipherAlphabetLength = 52;
+    private const string CipherForward = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    private const string CipherReverse = "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
+
+    /// <summary>Extensions that occur in CatSystem2 archives.</summary>
+    private static readonly string[] KnownExtensions =
+    [
+        ".ogg", ".wav", ".png", ".jpg", ".bmp", ".webp", ".ks", ".csv", ".tjs", ".txt",
+        ".anm", ".fes", ".dat", ".bin", ".int", ".mp3", ".opus", ".cgm", ".tcr", ".psb",
+        ".mtn", ".mes", ".sli", ".pna", ".pbd", ".pac", ".wmv", ".avi",
+    ];
+
+    private static bool HasKnownExtension(string name)
+    {
+        foreach (var extension in KnownExtensions)
+        {
+            if (name.EndsWith(extension, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsCipherLetter(char c) =>
+        c is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z');
+
+    private static string DecodeWithShift(string stored, int shift)
+    {
+        var chars = stored.ToCharArray();
+        for (int i = 0; i < chars.Length; i++)
+        {
+            if (!IsCipherLetter(chars[i]))
+            {
+                shift++;
+                continue;
+            }
+
+            // Walk the reversed alphabet in steps of four, exactly as the
+            // engine's generator advances; the first hit is the plain index.
+            int index = 0;
+            while (index < CipherAlphabetLength)
+            {
+                if (CipherReverse[(shift + index) % CipherAlphabetLength] == chars[i]) break;
+                if (CipherReverse[(shift + index + 1) % CipherAlphabetLength] == chars[i]) { index += 1; break; }
+                if (CipherReverse[(shift + index + 2) % CipherAlphabetLength] == chars[i]) { index += 2; break; }
+                if (CipherReverse[(shift + index + 3) % CipherAlphabetLength] == chars[i]) { index += 3; break; }
+                index += 4;
+            }
+
+            if (index < CipherAlphabetLength) chars[i] = CipherForward[index];
+            shift++;
+        }
+
+        return new string(chars);
     }
 
     private static CatSystem2Reader? OpenPlain(string path, FileStream fs, int count)

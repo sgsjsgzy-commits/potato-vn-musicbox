@@ -8,4 +8,8 @@
     <AssemblyName>MusicBox.Core</AssemblyName>
     <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PotatoVN.MusicBox.Cli" />
+  </ItemGroup>
 </Project>

@@ -398,9 +398,17 @@ public sealed class MusicScanner
     private static bool IsPlaceholderEntry(string entryPath)
     {
         string name = Path.GetFileNameWithoutExtension(entryPath);
-        return name.StartsWith("track", StringComparison.OrdinalIgnoreCase)
-               && name.Length > 5
-               && name.AsSpan(5).IndexOfAnyExcept("0123456789") < 0;
+
+        // KrkrZ protected indexes number their entries "track0001"; CatSystem2
+        // archives whose name cipher could not be read use "m00000001".
+        if (name.StartsWith("track", StringComparison.OrdinalIgnoreCase) && name.Length > 5
+            && name.AsSpan(5).IndexOfAnyExcept("0123456789") < 0)
+        {
+            return true;
+        }
+
+        return name.Length > 1 && (name[0] is 'm' or 'M')
+               && name.AsSpan(1).IndexOfAnyExcept("0123456789") < 0;
     }
 
     /// <summary>Opens the payload just long enough to read its duration.</summary>
@@ -493,6 +501,16 @@ public sealed class MusicScanner
     {
         string path = folderOrPath.Replace('\\', '/').ToLowerInvariant();
         string name = Path.GetFileNameWithoutExtension(fileName).ToLowerInvariant();
+
+        // Archive entries pass their whole path here, so the file name is the
+        // last segment. It must not be read as a folder: a track called
+        // "bgm_op_vocaloff" is music, not a voice line.
+        string normalizedFileName = fileName.Replace('\\', '/').ToLowerInvariant();
+        if (path == normalizedFileName)
+            path = string.Empty;
+        else if (path.EndsWith("/" + normalizedFileName, StringComparison.Ordinal))
+            path = path[..^(normalizedFileName.Length + 1)];
+
         string[] segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
         bool nameLooksLikeMusic = name.StartsWith("bgm") || name.StartsWith("mus")

@@ -33,6 +33,15 @@ switch (args[0])
     case "probe":
         RunProbe(args[1], args.Length > 2 ? args[2] : null);
         break;
+    case "tags":
+        RunTags(args[1], args.Length > 2 ? args[2] : null);
+        break;
+    case "kifnames":
+        Console.WriteLine(KifProbe.Probe(args[1], args[2]));
+        break;
+    case "kifrepro":
+        Console.WriteLine(KifRepro.Run(args[1], args[2]));
+        break;
     default:
         Console.WriteLine($"Unknown command: {args[0]}");
         break;
@@ -133,6 +142,34 @@ static void RunArchive(string path, string? filter)
     {
         Console.WriteLine($"  {entry.EntryPath}  offset={entry.Offset} stored={entry.StoredLength} unpacked={entry.UnpackedLength} enc={entry.IsEncrypted} cmp={entry.IsCompressed}");
     }
+}
+
+static void RunTags(string root, string? reportPath)
+{
+    var report = new StringBuilder();
+    int files = 0, tagged = 0;
+    foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+    {
+        if (!AudioProbe.IsPlayableExtension(file)) continue;
+        files++;
+        try
+        {
+            using var fs = File.OpenRead(file);
+            var tags = AudioProbe.ReadTags(fs);
+            if (tags.Count == 0) continue;
+            tagged++;
+            report.AppendLine($"{file}");
+            foreach (var (key, value) in tags) report.AppendLine($"    {key}={value}");
+        }
+        catch
+        {
+            // Unreadable files are skipped; the report only lists what parsed.
+        }
+    }
+
+    string output = reportPath ?? "tags.txt";
+    File.WriteAllText(output, report.ToString(), new UTF8Encoding(false));
+    Console.WriteLine($"{files} files, {tagged} with tags -> {output}");
 }
 
 static void RunPlay(string target)

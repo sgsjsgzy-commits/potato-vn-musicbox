@@ -229,6 +229,204 @@ public static class AudioProbe
     }
 
     /// <summary>
+    /// Reads the text comments a container carries (Vorbis comment, OpusTags,
+    /// ID3v2 text frames, FLAC Vorbis comment). Engines usually leave these
+    /// empty, but soundtrack releases fill in TITLE, so a populated tag is a
+    /// better label than the file name.
+    /// </summary>
+    public static IReadOnlyList<KeyValuePair<string, string>> ReadTags(Stream stream)
+    {
+        try
+        {
+            if (!stream.CanSeek) return [];
+
+            long start = stream.Position;
+            Span<byte> head = stackalloc byte[4];
+            if (stream.Read(head) != 4) return [];
+
+            IReadOnlyList<KeyValuePair<string, string>> tags;
+            if (head.SequenceEqual("OggS"u8))
+                tags = ReadOggComments(stream);
+            else if (head[..3].SequenceEqual("ID3"u8))
+                tags = ReadId3Tags(stream);
+            else if (head.SequenceEqual("fLaC"u8))
+                tags = ReadFlacComments(stream);
+            else
+                tags = [];
+
+            stream.Position = start;
+            return tags;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static IReadOnlyList<KeyValuePair<string, string>> ReadOggComments(Stream stream)
+    {
+        // The comment packet starts on page 2 for Vorbis ("\x03vorbis") and is
+        // the second packet of the first Opus page ("OpusTags").
+        var buffer = new byte[(int)Math.Min(256 * 1024, stream.Length)];
+        stream.Position = 0;
+        int read = stream.Read(buffer, 0, buffer.Length);
+
+        int index = IndexOf(buffer.AsSpan(0, read), "\x03vorbis"u8);
+        int skip = 7;
+        if (index < 0)
+        {
+            index = IndexOf(buffer.AsSpan(0, read), "OpusTags"u8);
+            skip = 8;
+        }
+
+        if (index < 0) return [];
+        return ParseVorbisComment(buffer.AsSpan(index + skip), read - index - skip);
+    }
+
+    private static IReadOnlyList<KeyValuePair<string, string>> ReadFlacComments(Stream stream)
+    {
+        var buffer = new byte[(int)Math.Min(256 * 1024, stream.Length)];
+        stream.Position = 0;
+        int read = stream.Read(buffer, 0, buffer.Length);
+
+        int index = IndexOf(buffer.AsSpan(0, read), "TITLE="u8);
+        // FLAC frames each comment as uint32 length + "KEY=value", so the
+        // length prefix sits right before the match and gives the whole entry.
+        if (index < 4) return [];
+
+        uint length = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan(index - 4));
+        if (length < 6 || index + length > read) return [];
+
+        var tags = new List<KeyValuePair<string, string>>();
+        int position = index;
+        int end = index + (int)length;
+        while (position + 4 <= read)
+        {
+            uint entryLength = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan(position - 4));
+            if (position + entryLength > read) break;
+
+            string entry = Encoding.UTF8.GetString(buffer, position, (int)entryLength);
+            int equals = entry.IndexOf('=');
+            if (equals > 0) tags.Add(new(entry[..equals].ToUpperInvariant(), entry[(equals + 1)..]));
+
+            position += (int)entryLength + 4;
+            if (position >= end || tags.Count == 32) break;
+        }
+
+        return tags;
+    }
+
+    private static IReadOnlyList<KeyValuePair<string, string>> ParseVorbisComment(ReadOnlySpan<byte> data, int available)
+    {
+        if (data.Length > available) data = data[..Math.Max(available, 0)];
+        if (data.Length < 8) return [];
+
+        try
+        {
+            uint vendorLength = BinaryPrimitives.ReadUInt32LittleEndian(data);
+            if (vendorLength > data.Length - 4) return [];
+
+            int position = 4 + (int)vendorLength;
+            if (position + 4 > data.Length) return [];
+
+            uint count = BinaryPrimitives.ReadUInt32LittleEndian(data[position..]);
+            position += 4;
+            if (count > 256) count = 256;
+
+            var tags = new List<KeyValuePair<string, string>>();
+            for (uint i = 0; i < count && position + 4 <= data.Length; i++)
+            {
+                uint length = BinaryPrimitives.ReadUInt32LittleEndian(data[position..]);
+                position += 4;
+                if (length > data.Length - position) break;
+
+                string entry = Encoding.UTF8.GetString(data.Slice(position, (int)length));
+                position += (int)length;
+
+                int equals = entry.IndexOf('=');
+                if (equals <= 0) continue;
+                tags.Add(new(entry[..equals].ToUpperInvariant(), entry[(equals + 1)..]));
+            }
+
+            return tags;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static IReadOnlyList<KeyValuePair<string, string>> ReadId3Tags(Stream stream)
+    {
+        stream.Position = 0;
+        var header = new byte[10];
+        if (stream.Read(header, 0, 10) != 10) return [];
+
+        int size = ((header[6] & 0x7F) << 21) | ((header[7] & 0x7F) << 14)
+                   | ((header[8] & 0x7F) << 7) | (header[9] & 0x7F);
+        size = Math.Min(size, 4 * 1024 * 1024);
+        if (size <= 0) return [];
+
+        var body = new byte[size];
+        stream.ReadExactly(body);
+
+        var tags = new List<KeyValuePair<string, string>>();
+        int position = 0;
+        while (position + 10 <= body.Length)
+        {
+            string id = Encoding.ASCII.GetString(body, position, 4);
+            if (id[0] == '\0') break;
+
+            int frameSize = (body[position + 4] << 24) | (body[position + 5] << 16)
+                            | (body[position + 6] << 8) | body[position + 7];
+            if (frameSize <= 0 || frameSize > body.Length - position - 10) break;
+
+            var data = body.AsSpan(position + 10, frameSize);
+            position += 10 + frameSize;
+
+            string? text = id switch
+            {
+                "TIT2" => DecodeId3Text(data),
+                "TPE1" => DecodeId3Text(data),
+                "TALB" => DecodeId3Text(data),
+                _ => null,
+            };
+
+            if (text is not null)
+                tags.Add(new(id, text));
+        }
+
+        return tags;
+    }
+
+    private static string? DecodeId3Text(ReadOnlySpan<byte> data)
+    {
+        if (data.Length < 2) return null;
+
+        // UTF-16 with BOM (1), UTF-16BE (2), or ISO-8859-1 / UTF-8 (0/3).
+        if (data[0] is 1 or 2)
+        {
+            bool bigEndian = data[0] == 2
+                             || (data[0] == 1 && data.Length >= 3 && data[1] == 0xFE && data[2] == 0xFF);
+            var encoding = bigEndian ? Encoding.BigEndianUnicode : Encoding.Unicode;
+            int skip = data[0] == 1 ? 3 : 1;
+            return skip < data.Length ? encoding.GetString(data[skip..]).TrimEnd('\0') : null;
+        }
+
+        return Encoding.UTF8.GetString(data[1..]).TrimEnd('\0');
+    }
+
+    private static int IndexOf(ReadOnlySpan<byte> haystack, ReadOnlySpan<byte> needle)
+    {
+        for (int i = 0; i <= haystack.Length - needle.Length; i++)
+        {
+            if (haystack.Slice(i, needle.Length).SequenceEqual(needle)) return i;
+        }
+
+        return -1;
+    }
+
+    /// <summary>
     /// Validates that a stream starts with a recognisable audio container. Used
     /// to drop encrypted or misidentified archive entries before they reach the
     /// player.

@@ -44,6 +44,22 @@ public sealed partial class MusicBoxPage : Page
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+        ActualThemeChanged += (_, _) => ApplyHeroTheme();
+    }
+
+    /// <summary>Hero wash is brighter in light theme, darker in dark theme.</summary>
+    private void ApplyHeroTheme()
+    {
+        bool dark = ActualTheme == ElementTheme.Dark;
+        HeroStopTop.Color = dark
+            ? Windows.UI.Color.FromArgb(0x66, 0x00, 0x00, 0x00)
+            : Windows.UI.Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF);
+        HeroStopMid.Color = dark
+            ? Windows.UI.Color.FromArgb(0xB0, 0x00, 0x00, 0x00)
+            : Windows.UI.Color.FromArgb(0xCC, 0xFF, 0xFF, 0xFF);
+        HeroStopBottom.Color = dark
+            ? Windows.UI.Color.FromArgb(0xD8, 0x00, 0x00, 0x00)
+            : Windows.UI.Color.FromArgb(0xF7, 0xFF, 0xFF, 0xFF);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -71,6 +87,7 @@ public sealed partial class MusicBoxPage : Page
 
         PopulateGames();
         UpdateNowPlayingMarker();
+        ApplyHeroTheme();
 
         if (_playerBar is not null) _playerBar.Cover = _selectedGame?.Cover;
     }
@@ -203,6 +220,7 @@ public sealed partial class MusicBoxPage : Page
         AlbumSubtitle.Text = item.Game.LocalPath ?? string.Empty;
         AlbumCover.Source = item.Cover;
         AlbumCoverPlaceholder.Visibility = item.Cover is null ? Visibility.Visible : Visibility.Collapsed;
+        HeroBackdrop.Source = item.Cover;
 
         if (_playerBar is not null && _playback.CurrentTrack is not null)
             _playerBar.Cover = item.Cover;

@@ -1,0 +1,11 @@
+{
+  "guid": "43537402-ca22-49ac-a82d-b23af37b65d8",
+  "name": "音乐盒",
+  "description_short": "不启动游戏,直接浏览并播放 galgame 安装目录里的 BGM,就像 Steam 上的原声带。",
+  "description_detailed": "支持 XP3 / KIF / YPF / LINK / RPA / AFA / PAC / BIN / NOA / OWP 等 20+ 种 galgame 归档格式,可在不解包、不启动游戏的情况下扫描整个游戏库并列出可播放的背景音乐、语音与音效。支持 AES / Blowfish / XOR 等加密索引的还原,KrkrZ KIF 加密索引的曲目名也能完整还原(true name recovery)。内置自研均衡器、淡入淡出、记住上次播放位置,配合获奖级现代化界面(模糊专辑洗底、三段式播放条、主突出播放按钮)。曲目扫描缓存,二次打开秒开。",
+  "icon": "icon.png",
+  "developer": "段奇",
+  "developer_url": "https://github.com/sgsjsgzy-commits",
+  "project_url": "https://github.com/sgsjsgzy-commits/potato-vn-musicbox",
+  "types": 40
+}

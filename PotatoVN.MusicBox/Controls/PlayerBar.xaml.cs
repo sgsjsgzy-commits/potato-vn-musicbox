@@ -119,6 +119,8 @@ public sealed partial class PlayerBar : UserControl
 
         PositionText.Text = FormatTime(_seeking ? PositionSlider.Value : _playback.PositionSeconds);
         DurationText.Text = FormatTime(_playback.DurationSeconds);
+        UpdatePositionRibbon(_seeking ? PositionSlider.Value : _playback.PositionSeconds,
+                             _playback.DurationSeconds);
 
         VolumeIcon.Glyph = _playback.IsMuted || _playback.Volume <= 0
             ? GlyphVolumeMute
@@ -217,4 +219,26 @@ public sealed partial class PlayerBar : UserControl
 
     private void QueueButton_Click(object sender, RoutedEventArgs e) =>
         QueueRequested?.Invoke(this, EventArgs.Empty);
+
+    // ------------------------------------------------ top progress ribbon
+
+    /// <summary>Mirrors position/duration onto the thin accent strip at the very top of the bar.</summary>
+    private void UpdatePositionRibbon(double positionSeconds, double durationSeconds)
+    {
+        if (PositionRibbon is null || PositionFill is null) return;
+        if (durationSeconds <= 0 || positionSeconds <= 0)
+        {
+            PositionFill.Width = 0;
+            return;
+        }
+
+        double ratio = Math.Clamp(positionSeconds / durationSeconds, 0, 1);
+        PositionFill.Width = PositionRibbon.ActualWidth * ratio;
+    }
+
+    private void PositionRibbon_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_playback is null) return;
+        UpdatePositionRibbon(_playback.PositionSeconds, _playback.DurationSeconds);
+    }
 }

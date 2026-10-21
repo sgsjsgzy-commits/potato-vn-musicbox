@@ -375,7 +375,11 @@
             </Grid>
         </Grid>
 
-        <!-- Player bar -->
-        <ContentControl x:Name="PlayerHost" Grid.Row="1" />
+        <!-- Player bar: spans the whole page width, heavier visual weight. -->
+        <ContentControl
+            x:Name="PlayerHost"
+            Grid.Row="1"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Stretch" />
     </Grid>
 </Page>
